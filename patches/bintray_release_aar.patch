@@ -1,0 +1,51 @@
+diff --git a/tools_webrtc/android/release_aar.py b/tools_webrtc/android/release_aar.py
+index 1ac21b4280..eb4f714bc5 100644
+--- a/tools_webrtc/android/release_aar.py
++++ b/tools_webrtc/android/release_aar.py
+@@ -38,14 +38,15 @@ from android.build_aar import BuildAar
+ 
+ 
+ ARCHS = ['armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64']
+-MAVEN_REPOSITORY = 'https://google.bintray.com/webrtc'
++MAVEN_REPOSITORY = 'https://dl.bintray.com/crosstalk/maven'
+ API = 'https://api.bintray.com'
+-PACKAGE_PATH = 'google/webrtc/google-webrtc'
++PACKAGE_PATH = 'crosstalk/maven/google-webrtc'
+ CONTENT_API = API + '/content/' + PACKAGE_PATH
+ PACKAGES_API = API + '/packages/' + PACKAGE_PATH
+-GROUP_ID = 'org/webrtc'
++GROUP_ID = 'io/crosstalk'
+ ARTIFACT_ID = 'google-webrtc'
+-COMMIT_POSITION_REGEX = r'^Cr-Commit-Position: refs/heads/master@{#(\d+)}$'
++COMMIT_POSITION_REGEX = r'^Cr-Commit-Position: refs/branch-heads/\d+@{#(\d+)}$'
++BRANCHED_FROM_REGEX = r'^Cr-Branched-From: .+refs/heads/master@{#(\d+)}$'
+ API_TIMEOUT_SECONDS = 10.0
+ UPLOAD_TRIES = 3
+ # The sleep time is increased exponentially.
+@@ -92,7 +93,12 @@ def _GetCommitPos():
+   if not commit_pos_match:
+     raise Exception('Commit position not found in the commit message: %s'
+                       % commit_message)
+-  return commit_pos_match.group(1)
++  branched_from_match = re.search(
++      BRANCHED_FROM_REGEX, commit_message, re.MULTILINE)
++  if not branched_from_match:
++    raise Exception('Branched position not found in the commit message: %s'
++                      % commit_message)
++  return branched_from_match.group(1) + '.' + commit_pos_match.group(1)
+ 
+ 
+ def _UploadFile(user, password, filename, version, target_file):
+diff --git a/tools_webrtc/android/templates/pom.jinja b/tools_webrtc/android/templates/pom.jinja
+index 90ca51ca9c..f1edcf155d 100644
+--- a/tools_webrtc/android/templates/pom.jinja
++++ b/tools_webrtc/android/templates/pom.jinja
+@@ -2,7 +2,7 @@
+   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+   <modelVersion>4.0.0</modelVersion>
+ 
+-  <groupId>org.webrtc</groupId>
++  <groupId>io.crosstalk</groupId>
+   <artifactId>google-webrtc</artifactId>
+   <version>{{ version }}</version>
+   <packaging>aar</packaging>
