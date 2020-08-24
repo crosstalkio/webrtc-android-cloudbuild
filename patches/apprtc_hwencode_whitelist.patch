@@ -1,0 +1,164 @@
+diff --git a/examples/androidapp/res/values/strings.xml b/examples/androidapp/res/values/strings.xml
+index 814966f200..e15fe507b0 100644
+--- a/examples/androidapp/res/values/strings.xml
++++ b/examples/androidapp/res/values/strings.xml
+@@ -87,6 +87,11 @@
+     <string name="pref_hwcodec_dlg">Use hardware accelerated video codec (if available).</string>
+     <string name="pref_hwcodec_default">true</string>
+ 
++    <string name="pref_hwencode_whitelist_key">hwencode_whitelist_preference</string>
++    <string name="pref_hwencode_whitelist_title">Video encoder white list.</string>
++    <string name="pref_hwencode_whitelist_dlg">Enter video encoder white list, separated by colon.</string>
++    <string name="pref_hwencode_whitelist_default" translatable="false"></string>
++
+     <string name="pref_capturetotexture_key">capturetotexture_preference</string>
+     <string name="pref_capturetotexture_title">Video capture to surface texture.</string>
+     <string name="pref_capturetotexture_dlg">Capture video to textures (if available).</string>
+diff --git a/examples/androidapp/res/xml/preferences.xml b/examples/androidapp/res/xml/preferences.xml
+index 14e74d5c0b..01bcfd59d3 100644
+--- a/examples/androidapp/res/xml/preferences.xml
++++ b/examples/androidapp/res/xml/preferences.xml
+@@ -71,6 +71,13 @@
+             android:dialogTitle="@string/pref_hwcodec_dlg"
+             android:defaultValue="@string/pref_hwcodec_default" />
+ 
++        <EditTextPreference
++            android:key="@string/pref_hwencode_whitelist_key"
++            android:title="@string/pref_hwencode_whitelist_title"
++            android:inputType="text"
++            android:defaultValue="@string/pref_hwencode_whitelist_default"
++            android:dialogTitle="@string/pref_hwencode_whitelist_dlg" />
++
+         <CheckBoxPreference
+             android:key="@string/pref_capturetotexture_key"
+             android:title="@string/pref_capturetotexture_title"
+diff --git a/examples/androidapp/src/org/appspot/apprtc/CallActivity.java b/examples/androidapp/src/org/appspot/apprtc/CallActivity.java
+index d55a9704d3..af8a89bbd5 100644
+--- a/examples/androidapp/src/org/appspot/apprtc/CallActivity.java
++++ b/examples/androidapp/src/org/appspot/apprtc/CallActivity.java
+@@ -84,6 +84,7 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
+   public static final String EXTRA_VIDEO_BITRATE = "org.appspot.apprtc.VIDEO_BITRATE";
+   public static final String EXTRA_VIDEOCODEC = "org.appspot.apprtc.VIDEOCODEC";
+   public static final String EXTRA_HWCODEC_ENABLED = "org.appspot.apprtc.HWCODEC";
++  public static final String EXTRA_HWENCODE_WHITELIST = "org.appspot.apprtc.HWENCODE_WHITELIST";
+   public static final String EXTRA_CAPTURETOTEXTURE_ENABLED = "org.appspot.apprtc.CAPTURETOTEXTURE";
+   public static final String EXTRA_FLEXFEC_ENABLED = "org.appspot.apprtc.FLEXFEC";
+   public static final String EXTRA_AUDIO_BITRATE = "org.appspot.apprtc.AUDIO_BITRATE";
+@@ -314,6 +315,7 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
+             tracing, videoWidth, videoHeight, intent.getIntExtra(EXTRA_VIDEO_FPS, 0),
+             intent.getIntExtra(EXTRA_VIDEO_BITRATE, 0), intent.getStringExtra(EXTRA_VIDEOCODEC),
+             intent.getBooleanExtra(EXTRA_HWCODEC_ENABLED, true),
++            intent.getStringArrayExtra(EXTRA_HWENCODE_WHITELIST),
+             intent.getBooleanExtra(EXTRA_FLEXFEC_ENABLED, false),
+             intent.getIntExtra(EXTRA_AUDIO_BITRATE, 0), intent.getStringExtra(EXTRA_AUDIOCODEC),
+             intent.getBooleanExtra(EXTRA_NOAUDIOPROCESSING_ENABLED, false),
+diff --git a/examples/androidapp/src/org/appspot/apprtc/ConnectActivity.java b/examples/androidapp/src/org/appspot/apprtc/ConnectActivity.java
+index f282fc89b2..a3fda9c7dd 100644
+--- a/examples/androidapp/src/org/appspot/apprtc/ConnectActivity.java
++++ b/examples/androidapp/src/org/appspot/apprtc/ConnectActivity.java
+@@ -387,6 +387,12 @@ public class ConnectActivity extends Activity {
+     // Check HW codec flag.
+     boolean hwCodec = sharedPrefGetBoolean(R.string.pref_hwcodec_key,
+         CallActivity.EXTRA_HWCODEC_ENABLED, R.string.pref_hwcodec_default, useValuesFromIntent);
++    String hwEncodeWhitelist = sharedPrefGetString(R.string.pref_hwencode_whitelist_key,
++        CallActivity.EXTRA_HWENCODE_WHITELIST, R.string.pref_hwencode_whitelist_default, useValuesFromIntent);
++    String[] hwEncodeWhitelistArray = null;
++    if (hwEncodeWhitelist.length() > 0) {
++      hwEncodeWhitelistArray = hwEncodeWhitelist.split(":");
++    }
+ 
+     // Check Capture to texture.
+     boolean captureToTexture = sharedPrefGetBoolean(R.string.pref_capturetotexture_key,
+@@ -558,6 +564,7 @@ public class ConnectActivity extends Activity {
+       intent.putExtra(CallActivity.EXTRA_VIDEO_BITRATE, videoStartBitrate);
+       intent.putExtra(CallActivity.EXTRA_VIDEOCODEC, videoCodec);
+       intent.putExtra(CallActivity.EXTRA_HWCODEC_ENABLED, hwCodec);
++      intent.putExtra(CallActivity.EXTRA_HWENCODE_WHITELIST, hwEncodeWhitelistArray);
+       intent.putExtra(CallActivity.EXTRA_CAPTURETOTEXTURE_ENABLED, captureToTexture);
+       intent.putExtra(CallActivity.EXTRA_FLEXFEC_ENABLED, flexfecEnabled);
+       intent.putExtra(CallActivity.EXTRA_NOAUDIOPROCESSING_ENABLED, noAudioProcessing);
+diff --git a/examples/androidapp/src/org/appspot/apprtc/PeerConnectionClient.java b/examples/androidapp/src/org/appspot/apprtc/PeerConnectionClient.java
+index 2817afea01..6ca25b4f60 100644
+--- a/examples/androidapp/src/org/appspot/apprtc/PeerConnectionClient.java
++++ b/examples/androidapp/src/org/appspot/apprtc/PeerConnectionClient.java
+@@ -213,6 +213,7 @@ public class PeerConnectionClient {
+     public final int videoMaxBitrate;
+     public final String videoCodec;
+     public final boolean videoCodecHwAcceleration;
++    public final String[] videoEncoderWhitelist;
+     public final boolean videoFlexfecEnabled;
+     public final int audioStartBitrate;
+     public final String audioCodec;
+@@ -229,7 +230,7 @@ public class PeerConnectionClient {
+ 
+     public PeerConnectionParameters(boolean videoCallEnabled, boolean loopback, boolean tracing,
+         int videoWidth, int videoHeight, int videoFps, int videoMaxBitrate, String videoCodec,
+-        boolean videoCodecHwAcceleration, boolean videoFlexfecEnabled, int audioStartBitrate,
++        boolean videoCodecHwAcceleration, String[] videoEncoderWhitelist, boolean videoFlexfecEnabled, int audioStartBitrate,
+         String audioCodec, boolean noAudioProcessing, boolean aecDump, boolean saveInputAudioToFile,
+         boolean useOpenSLES, boolean disableBuiltInAEC, boolean disableBuiltInAGC,
+         boolean disableBuiltInNS, boolean disableWebRtcAGCAndHPF, boolean enableRtcEventLog,
+@@ -242,6 +243,7 @@ public class PeerConnectionClient {
+       this.videoFps = videoFps;
+       this.videoMaxBitrate = videoMaxBitrate;
+       this.videoCodec = videoCodec;
++      this.videoEncoderWhitelist = videoEncoderWhitelist;
+       this.videoFlexfecEnabled = videoFlexfecEnabled;
+       this.videoCodecHwAcceleration = videoCodecHwAcceleration;
+       this.audioStartBitrate = audioStartBitrate;
+@@ -434,7 +436,18 @@ public class PeerConnectionClient {
+ 
+     if (peerConnectionParameters.videoCodecHwAcceleration) {
+       encoderFactory = new DefaultVideoEncoderFactory(
+-          rootEglBase.getEglBaseContext(), true /* enableIntelVp8Encoder */, enableH264HighProfile);
++          rootEglBase.getEglBaseContext(), true /* enableIntelVp8Encoder */, enableH264HighProfile, arg -> {
++            if (peerConnectionParameters.videoEncoderWhitelist == null || peerConnectionParameters.videoEncoderWhitelist.length == 0) {
++              return false;
++            }
++            final String name = arg.getName();
++            for (String prefix : peerConnectionParameters.videoEncoderWhitelist) {
++                if (name.startsWith(prefix)) {
++                    return true;
++                }
++            }
++            return false;
++        });
+       decoderFactory = new DefaultVideoDecoderFactory(rootEglBase.getEglBaseContext());
+     } else {
+       encoderFactory = new SoftwareVideoEncoderFactory();
+diff --git a/examples/androidapp/src/org/appspot/apprtc/SettingsActivity.java b/examples/androidapp/src/org/appspot/apprtc/SettingsActivity.java
+index e9c6f6b798..33366e922b 100644
+--- a/examples/androidapp/src/org/appspot/apprtc/SettingsActivity.java
++++ b/examples/androidapp/src/org/appspot/apprtc/SettingsActivity.java
+@@ -34,6 +34,7 @@ public class SettingsActivity extends Activity implements OnSharedPreferenceChan
+   private String keyprefMaxVideoBitrateValue;
+   private String keyPrefVideoCodec;
+   private String keyprefHwCodec;
++  private String keyprefHwEncodeWhitelist;
+   private String keyprefCaptureToTexture;
+   private String keyprefFlexfec;
+ 
+@@ -76,6 +77,7 @@ public class SettingsActivity extends Activity implements OnSharedPreferenceChan
+     keyprefMaxVideoBitrateValue = getString(R.string.pref_maxvideobitratevalue_key);
+     keyPrefVideoCodec = getString(R.string.pref_videocodec_key);
+     keyprefHwCodec = getString(R.string.pref_hwcodec_key);
++    keyprefHwEncodeWhitelist = getString(R.string.pref_hwencode_whitelist_key);
+     keyprefCaptureToTexture = getString(R.string.pref_capturetotexture_key);
+     keyprefFlexfec = getString(R.string.pref_flexfec_key);
+ 
+@@ -132,6 +134,7 @@ public class SettingsActivity extends Activity implements OnSharedPreferenceChan
+     setVideoBitrateEnable(sharedPreferences);
+     updateSummary(sharedPreferences, keyPrefVideoCodec);
+     updateSummaryB(sharedPreferences, keyprefHwCodec);
++    updateSummary(sharedPreferences, keyprefHwEncodeWhitelist);
+     updateSummaryB(sharedPreferences, keyprefCaptureToTexture);
+     updateSummaryB(sharedPreferences, keyprefFlexfec);
+ 
+@@ -208,6 +211,7 @@ public class SettingsActivity extends Activity implements OnSharedPreferenceChan
+         || key.equals(keyprefFps)
+         || key.equals(keyprefMaxVideoBitrateType)
+         || key.equals(keyPrefVideoCodec)
++        || key.equals(keyprefHwEncodeWhitelist)
+         || key.equals(keyprefStartAudioBitrateType)
+         || key.equals(keyPrefAudioCodec)
+         || key.equals(keyPrefRoomServerUrl)

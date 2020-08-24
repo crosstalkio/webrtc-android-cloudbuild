@@ -1,0 +1,13 @@
+diff --git a/modules/remote_bitrate_estimator/inter_arrival.cc b/modules/remote_bitrate_estimator/inter_arrival.cc
+index b8e683b89a..8ba6bdf5a2 100644
+--- a/modules/remote_bitrate_estimator/inter_arrival.cc
++++ b/modules/remote_bitrate_estimator/inter_arrival.cc
+@@ -141,7 +141,7 @@ bool InterArrival::BelongsToBurst(int64_t arrival_time_ms,
+   if (!burst_grouping_) {
+     return false;
+   }
+-  assert(current_timestamp_group_.complete_time_ms >= 0);
++  //assert(current_timestamp_group_.complete_time_ms >= 0);
+   int64_t arrival_time_delta_ms =
+       arrival_time_ms - current_timestamp_group_.complete_time_ms;
+   uint32_t timestamp_diff = timestamp - current_timestamp_group_.timestamp;
