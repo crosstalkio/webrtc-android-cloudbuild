@@ -25,6 +25,30 @@ steps:
 - name: crosstalkio/webrtc-android-builder
   dir: /workspace/src
   entrypoint: git
+  args: ['apply', '/workspace/patches/tethering.patch']
+- name: crosstalkio/webrtc-android-builder
+  dir: /workspace/src
+  entrypoint: git
+  args: ['apply', '/workspace/patches/mediacodec_whitelist_and_platform_encoder.patch']
+- name: crosstalkio/webrtc-android-builder
+  dir: /workspace/src
+  entrypoint: git
+  args: ['apply', '/workspace/patches/apprtc_hwencode_whitelist.patch']
+- name: crosstalkio/webrtc-android-builder
+  dir: /workspace/src
+  entrypoint: git
+  args: ['apply', '/workspace/patches/inter_arrival.patch']
+- name: crosstalkio/webrtc-android-builder
+  dir: /workspace/src
+  entrypoint: git
+  args: ['apply', '/workspace/patches/htc_desire_816_vp8_encoder_init_error_and_reset_on_encoder_error.patch']
+- name: crosstalkio/webrtc-android-builder
+  dir: /workspace/src
+  entrypoint: git
+  args: ['apply', '/workspace/patches/enable_implicit_rollback.patch']
+- name: crosstalkio/webrtc-android-builder
+  dir: /workspace/src
+  entrypoint: git
   args: ['apply', '/workspace/patches/bintray_release_aar.patch']
 - name: crosstalkio/webrtc-android-builder
   env:

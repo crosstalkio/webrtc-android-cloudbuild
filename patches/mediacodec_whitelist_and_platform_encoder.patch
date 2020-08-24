@@ -1,0 +1,104 @@
+diff --git a/sdk/android/api/org/webrtc/DefaultVideoEncoderFactory.java b/sdk/android/api/org/webrtc/DefaultVideoEncoderFactory.java
+index 029b4157e5..26568d8081 100644
+--- a/sdk/android/api/org/webrtc/DefaultVideoEncoderFactory.java
++++ b/sdk/android/api/org/webrtc/DefaultVideoEncoderFactory.java
+@@ -10,6 +10,7 @@
+ 
+ package org.webrtc;
+ 
++import android.media.MediaCodecInfo;
+ import android.support.annotation.Nullable;
+ import java.util.Arrays;
+ import java.util.LinkedHashSet;
+@@ -18,24 +19,35 @@ import java.util.LinkedHashSet;
+ public class DefaultVideoEncoderFactory implements VideoEncoderFactory {
+   private final VideoEncoderFactory hardwareVideoEncoderFactory;
+   private final VideoEncoderFactory softwareVideoEncoderFactory = new SoftwareVideoEncoderFactory();
++  private final @Nullable VideoEncoderFactory platformSoftwareVideoEncoderFactory;
+ 
+   /** Create encoder factory using default hardware encoder factory. */
+   public DefaultVideoEncoderFactory(
+       EglBase.Context eglContext, boolean enableIntelVp8Encoder, boolean enableH264HighProfile) {
++    this(eglContext, enableIntelVp8Encoder, enableH264HighProfile, null);
++  }
++
++  public DefaultVideoEncoderFactory(
++          EglBase.Context eglContext, boolean enableIntelVp8Encoder, boolean enableH264HighProfile, @Nullable Predicate<MediaCodecInfo> codecAllowedPredicate) {
+     this.hardwareVideoEncoderFactory =
+-        new HardwareVideoEncoderFactory(eglContext, enableIntelVp8Encoder, enableH264HighProfile);
++            new HardwareVideoEncoderFactory(eglContext, enableIntelVp8Encoder, enableH264HighProfile, codecAllowedPredicate);
++    this.platformSoftwareVideoEncoderFactory = new PlatformSoftwareVideoEncoderFactory(eglContext);
+   }
+ 
+   /** Create encoder factory using explicit hardware encoder factory. */
+   DefaultVideoEncoderFactory(VideoEncoderFactory hardwareVideoEncoderFactory) {
+     this.hardwareVideoEncoderFactory = hardwareVideoEncoderFactory;
++    this.platformSoftwareVideoEncoderFactory = null;
+   }
+ 
+   @Nullable
+   @Override
+   public VideoEncoder createEncoder(VideoCodecInfo info) {
+-    final VideoEncoder softwareEncoder = softwareVideoEncoderFactory.createEncoder(info);
++    VideoEncoder softwareEncoder = softwareVideoEncoderFactory.createEncoder(info);
+     final VideoEncoder hardwareEncoder = hardwareVideoEncoderFactory.createEncoder(info);
++    if (softwareEncoder == null && platformSoftwareVideoEncoderFactory != null) {
++      softwareEncoder = platformSoftwareVideoEncoderFactory.createEncoder(info);
++    }
+     if (hardwareEncoder != null && softwareEncoder != null) {
+       // Both hardware and software supported, wrap it in a software fallback
+       return new VideoEncoderFallback(
+@@ -50,7 +62,31 @@ public class DefaultVideoEncoderFactory implements VideoEncoderFactory {
+ 
+     supportedCodecInfos.addAll(Arrays.asList(softwareVideoEncoderFactory.getSupportedCodecs()));
+     supportedCodecInfos.addAll(Arrays.asList(hardwareVideoEncoderFactory.getSupportedCodecs()));
++    if (platformSoftwareVideoEncoderFactory != null) {
++      supportedCodecInfos.addAll(
++              Arrays.asList(platformSoftwareVideoEncoderFactory.getSupportedCodecs()));
++    }
+ 
+     return supportedCodecInfos.toArray(new VideoCodecInfo[supportedCodecInfos.size()]);
+   }
++  /** Factory for Android platform software VideoDecoders. */
++  private static class PlatformSoftwareVideoEncoderFactory extends HardwareVideoEncoderFactory {
++    /**
++    * Creates a PlatformSoftwareVideoDecoderFactory that supports surface texture rendering.
++    *
++    * @param sharedContext The textures generated will be accessible from this context. May be null,
++    *                      this disables texture support.
++    */
++    public PlatformSoftwareVideoEncoderFactory(@Nullable EglBase.Context sharedContext) {
++      super(sharedContext, false, false, arg -> {
++        final String name = arg.getName();
++        for (String prefix : MediaCodecUtils.SOFTWARE_IMPLEMENTATION_PREFIXES) {
++          if (name.startsWith(prefix)) {
++            return true;
++          }
++        }
++        return false;
++      });
++    }
++  }
+ }
+diff --git a/sdk/android/api/org/webrtc/HardwareVideoEncoderFactory.java b/sdk/android/api/org/webrtc/HardwareVideoEncoderFactory.java
+index 8fe8b36909..c2de77c6e4 100644
+--- a/sdk/android/api/org/webrtc/HardwareVideoEncoderFactory.java
++++ b/sdk/android/api/org/webrtc/HardwareVideoEncoderFactory.java
+@@ -189,7 +189,7 @@ public class HardwareVideoEncoderFactory implements VideoEncoderFactory {
+         == null) {
+       return false;
+     }
+-    return isHardwareSupportedInCurrentSdk(info, type) && isMediaCodecAllowed(info);
++    return isHardwareSupportedInCurrentSdk(info, type) || isMediaCodecAllowed(info);
+   }
+ 
+   // Returns true if the given MediaCodecInfo indicates a hardware module that is supported on the
+@@ -239,7 +239,7 @@ public class HardwareVideoEncoderFactory implements VideoEncoderFactory {
+ 
+   private boolean isMediaCodecAllowed(MediaCodecInfo info) {
+     if (codecAllowedPredicate == null) {
+-      return true;
++      return false;
+     }
+     return codecAllowedPredicate.test(info);
+   }

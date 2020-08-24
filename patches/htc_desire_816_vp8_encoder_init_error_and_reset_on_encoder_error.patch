@@ -1,0 +1,21 @@
+diff --git a/sdk/android/src/java/org/webrtc/HardwareVideoEncoder.java b/sdk/android/src/java/org/webrtc/HardwareVideoEncoder.java
+index 42800aef10..73ae8d659f 100644
+--- a/sdk/android/src/java/org/webrtc/HardwareVideoEncoder.java
++++ b/sdk/android/src/java/org/webrtc/HardwareVideoEncoder.java
+@@ -227,7 +227,7 @@ class HardwareVideoEncoder implements VideoEncoder {
+ 
+     try {
+       codec = mediaCodecWrapperFactory.createByCodecName(codecName);
+-    } catch (IOException | IllegalArgumentException e) {
++    } catch (IOException | IllegalArgumentException | IllegalStateException e) {
+       Logging.e(TAG, "Cannot create media encoder " + codecName);
+       return VideoCodecStatus.FALLBACK_SOFTWARE;
+     }
+@@ -605,6 +605,7 @@ class HardwareVideoEncoder implements VideoEncoder {
+       }
+     } catch (IllegalStateException e) {
+       Logging.e(TAG, "deliverOutput failed", e);
++      width = height = 0; // cause encoder to reset
+     }
+   }
+ 
