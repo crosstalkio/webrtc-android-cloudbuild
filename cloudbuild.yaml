@@ -1,28 +1,28 @@
 steps:
-- name: crosstalkio/webrtc-android-cloudbuild
+- name: crosstalkio/webrtc-android-builder
   dir: /workspace
   entrypoint: fetch
   args: ['--nohooks', 'webrtc_android']
-- name: crosstalkio/webrtc-android-cloudbuild
+- name: crosstalkio/webrtc-android-builder
   dir: /workspace/src
   entrypoint: git
   args: ['fetch', 'origin']
-- name: crosstalkio/webrtc-android-cloudbuild
+- name: crosstalkio/webrtc-android-builder
   dir: /workspace/src
   entrypoint: git
   args: ['checkout', 'd25c2ac74afc25f65d111771dbfabd6db25d2498']
-- name: crosstalkio/webrtc-android-cloudbuild
+- name: crosstalkio/webrtc-android-builder
   entrypoint: rm
   args: ['-rf', '/workspace/.cipd']
-- name: crosstalkio/webrtc-android-cloudbuild
+- name: crosstalkio/webrtc-android-builder
   dir: /workspace/src
   entrypoint: gclient
   args: ['sync', '-D']
-- name: crosstalkio/webrtc-android-cloudbuild
+- name: crosstalkio/webrtc-android-builder
   dir: /workspace/src
   entrypoint: git
-  args: ['apply', '/webrtc/patches/bintray_release_aar.patch']
-- name: crosstalkio/webrtc-android-cloudbuild
+  args: ['apply', '/workspace/patches/bintray_release_aar.patch']
+- name: crosstalkio/webrtc-android-builder
   env:
     - 'BINTRAY_USER=${_BINTRAY_USER}'
     - 'BINTRAY_API_KEY=${_BINTRAY_API_KEY}'
