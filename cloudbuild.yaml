@@ -20,10 +20,6 @@ steps:
   args: ['sync', '-D']
 - name: crosstalkio/webrtc-android-builder
   dir: /workspace/src
-  entrypoint: python
-  args: ['tools_webrtc/android/build_aar.py', '--build-dir=/workspace/build/aar-build']
-- name: crosstalkio/webrtc-android-builder
-  dir: /workspace/src
   entrypoint: git
   args: ['apply', '/workspace/patches/tethering.patch']
 - name: crosstalkio/webrtc-android-builder
@@ -46,6 +42,10 @@ steps:
   dir: /workspace/src
   entrypoint: git
   args: ['apply', '/workspace/patches/enable_implicit_rollback.patch']
+- name: crosstalkio/webrtc-android-builder
+  dir: /workspace/src
+  entrypoint: python
+  args: ['tools_webrtc/android/build_aar.py', '--build-dir=/workspace/build/aar-build']
 - name: crosstalkio/webrtc-android-builder
   dir: /workspace/src
   entrypoint: git
