@@ -44,10 +44,13 @@ steps:
   args: ['apply', '/workspace/patches/enable_implicit_rollback.patch']
 - name: crosstalkio/webrtc-android-builder
   dir: /workspace/src
+<<<<<<< HEAD
   entrypoint: python
   args: ['tools_webrtc/android/build_aar.py', '--build-dir=/workspace/build/aar-build']
 - name: crosstalkio/webrtc-android-builder
   dir: /workspace/src
+=======
+>>>>>>> 834bc0c80d471a19c4f435ded08ec769ab4d0e57
   entrypoint: git
   args: ['apply', '/workspace/patches/bintray_release_aar.patch']
 - name: crosstalkio/webrtc-android-builder
