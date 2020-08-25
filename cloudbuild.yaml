@@ -20,6 +20,10 @@ steps:
   args: ['sync', '-D']
 - name: crosstalkio/webrtc-android-builder
   dir: /workspace/src
+  entrypoint: python
+  args: ['tools_webrtc/android/build_aar.py', '--build-dir=/workspace/build/aar-build']
+- name: crosstalkio/webrtc-android-builder
+  dir: /workspace/src
   entrypoint: git
   args: ['apply', '/workspace/patches/bintray_release_aar.patch']
 - name: crosstalkio/webrtc-android-builder
@@ -28,7 +32,7 @@ steps:
     - 'BINTRAY_API_KEY=${_BINTRAY_API_KEY}'
   dir: /workspace/src
   entrypoint: python
-  args: ['tools_webrtc/android/release_aar.py', '--skip-tests']
+  args: ['tools_webrtc/android/release_aar.py', '--build-dir=/workspace/build', '--skip-tests']
 timeout: 7200s
 options:
   machineType: 'N1_HIGHCPU_32'
