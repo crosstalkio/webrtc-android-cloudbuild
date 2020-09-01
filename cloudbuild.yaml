@@ -12,6 +12,10 @@ steps:
   entrypoint: git
   args: ['checkout', 'd25c2ac74afc25f65d111771dbfabd6db25d2498']
 - name: crosstalkio/webrtc-android-builder
+  dir: /workspace/src
+  entrypoint: bash
+  args: ['build/install-build-deps-android.sh']
+- name: crosstalkio/webrtc-android-builder
   entrypoint: rm
   args: ['-rf', '/workspace/.cipd']
 - name: crosstalkio/webrtc-android-builder
