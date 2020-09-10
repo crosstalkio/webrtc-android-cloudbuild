@@ -10,7 +10,7 @@ steps:
 - name: crosstalkio/webrtc-android-builder
   dir: /workspace/src
   entrypoint: git
-  args: ['checkout', 'd25c2ac74afc25f65d111771dbfabd6db25d2498']
+  args: ['checkout', '2bcd4837dd5eeed98523344d437eb0b7e4f441ba']
 - name: crosstalkio/webrtc-android-builder
   dir: /workspace/src
   entrypoint: bash
@@ -37,6 +37,6 @@ steps:
   dir: /workspace/src
   entrypoint: python
   args: ['tools_webrtc/android/release_aar.py', '--build-dir=/workspace/build', '--skip-tests']
-timeout: 7200s
-options:
-  machineType: 'N1_HIGHCPU_32'
+timeout: 14400s
+# options:
+#   machineType: 'N1_HIGHCPU_32'

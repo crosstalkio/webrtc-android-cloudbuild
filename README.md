@@ -1,6 +1,10 @@
 # WebRTC Android on Google Cloud Build
 
-This project builds WebRTC Android and publishes maven package to [bintray](https://bintray.com) within about 20 mins. It leverages the 32 CPUs VM provided by [Cloud Build](https://cloud.google.com/cloud-build), and thanks God that Google offers 2 hours of free build time per day.
+This project builds WebRTC Android and publishes maven package to [bintray](https://bintray.com) with [Cloud Build](https://cloud.google.com/cloud-build). Please note that you will have to pay in order to use Cloud Build. The rough build time of different machine types are:
+
+- n1-standard-1: 2h40m
+- n1-highcpu-8: 40m
+- n1-highcpu-32: 20m
 
 ## Build on Cloud
 
